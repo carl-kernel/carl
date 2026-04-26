@@ -1,4 +1,4 @@
-
+// © Gamer Mauri 2026
 // [C] Mau 2026
 
 #include <stdio.h>
