@@ -1,5 +1,5 @@
-// © Gamer Mauri 2026
-// [C] Bentosmau-gif 26
+
+// [C] Mau 2026
 
 #include <stdio.h>
 #include "memory.h"
