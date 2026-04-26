@@ -1,5 +1,6 @@
-// © Gamer Mauri 2026
+// SPDX-License-Identifier: GPL-2.0-only
 // [C] Mau 2026
+// © Gamer Mauri 2026
 
 #include <stdio.h>
 #include "memory.h"
