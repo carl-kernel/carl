@@ -1,59 +1,101 @@
+text
 
-Carl Kernel: Project CarlD 🚀
-The bridge between computing eras: High performance for new and legacy hardware.
-Carl is a specialized, open-source kernel designed to maximize the efficiency of hardware across generations. Unlike a full operating system, Carl focuses on being the fundamental engine (kernel) that manages resources with extreme precision.
+# Carl Kernel Architecture Diagram
 
-From its humble beginnings to the current v15 (CarlD), the project remains committed to the philosophy: No hardware left behind.
+## Boot Sequence (Secuencia de Inicio)
 
-📖 The Official History
-Carl started as an experimental core to prove that older computers could still run modern workloads.
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. bootloader.asm (Real Mode 16-bit)                        │
+│    - Inicializa memoria básica                              │
+│    - Carga kernel en memoria                                │
+│    - Salta a modo protegido                                 │
+└─────────────────────────────────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 2. Protected Mode Entry                                      │
+│    - Habilita A20 line                                       │
+│    - Carga GDT temporal                                      │
+│    - Habilita modo protegido (CR0 PE bit)                   │
+│    - Salta a start_kernel()                                 │
+└─────────────────────────────────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 3. start_kernel() en main.c                                 │
+└─────────────────────────────────────────────────────────────┘
+    ├─→ vga_init()           [Inicializa pantalla]
+    ├─→ init_gdt()           [Configura segmentación]
+    ├─→ init_idt()           [Configura interrupciones]
+    ├─→ init_timer()         [Configura reloj del sistema]
+    ├─→ init_keyboard()      [Configura entrada]
+    ├─→ init_interrupts()    [Habilita interrupciones]
+    └─→ kernel_shell()       [Shell interactivo]
+```
 
-v11: Integrated Mozilla Firefox (Original Creator: Mozilla) as the primary web engine.
+## Memory Layout (Distribución de Memoria)
 
-v12 & v13: Introduced the GPLv2 License and the integrated security modules.
+```
+4 GB    ┌──────────────────┐
+        │  Kernel Space    │
+        │  (Ring 0)        │
+        │                  │
+        │  ┌────────────┐  │
+        │  │   Kernel  │  │
+        │  │   Code    │  │
+        │  └────────────┘  │
+        │                  │
+        │  ┌────────────┐  │
+        │  │   Kernel  │  │
+        │  │   Data    │  │
+        │  └────────────┘  │
+        │                  │
+        │  ┌────────────┐  │
+        │  │   GDT/IDT │  │
+        │  └────────────┘  │
+        │                  │
+      3 GB┝─────────────────┤
+        │                  │
+        │  User Space      │
+        │  (Ring 3)        │
+        │                  │
+      0 GB┴──────────────────┴
+        
+    Special Addresses:
+    - 0x00000000: IVT (Interrupt Vector Table) - Real Mode
+    - 0x0000B800: Video Memory (0xB8000) - 80x25 text mode
+    - 0x00100000: Kernel Load Address (1 MB)
+```
 
-v14: Included the "First Kernel" as a historical reference for developers.
+## Interrupt/Exception Vectors
 
-v15 (CarlD): The current generation, featuring enhanced modularity and a refined vCPU.
+```
+Vector #  | Type           | Handler
+────────────────────────────────────────
+    0     | Divide by Zero | isr0
+    1     | Debug          | isr1
+    2     | NMI            | isr2
+    3     | Breakpoint     | isr3
+    4     | Overflow       | isr4
+    5     | Bound Range    | isr5
+    6     | Invalid Opcode | isr6
+    7     | Device N/A     | isr7
+    8     | Double Fault   | isr8
+   ...    | ...            | ...
+   13     | GPF            | isr13
+   14     | Page Fault     | isr14
+   32     | Timer (IRQ0)   | timer_handler
+   33     | Keyboard (IRQ1)| keyboard_handler
+   ...    | ...            | ...
+```
 
-🛠️ Technical Architecture
-The project is built on a hybrid architecture that leverages the strengths of C and C++ through collaboration with expert developers.
+## Hardware I/O Ports
 
-Core Modules
-cpu/: Dual-layer management.
-
-Physical Control (C): Low-level hardware handling by Gamer Mauri.
-
-Virtual CPU (C++): High-level virtualization logic by Dev.
-
-ram/: Advanced memory management (formerly mm/) optimized for low-footprint systems.
-
-drivers/: Official support for legacy and modern peripherals, with ongoing research to expand brand compatibility.
-
-antivirus/: A native security engine written in C & C++ by Dev and Gamer Mauri, providing real-time protection at the kernel level.
-
-🌐 Web Navigation
-Carl features deep integration with Mozilla Firefox, our primary browser.
-
-[!IMPORTANT]
-Attribution: All files within the Firefox integration folders are the property of their original creator, Mozilla. Carl uses this code to demonstrate the kernel's high-performance execution capabilities.
-
-📜 Licensing
-This project is officially licensed under the GNU General Public License v2 (GPLv2). We believe in free software and the power of community collaboration.
-
-🚀 Getting Started
-Prerequisites
-You will need a GCC toolchain and basic build tools (make, binutils).
-
-Installation
-Clone the latest release (CarlD v15):
-
-Bash
-git clone --branch v15 https://github.com/mau/carl.git
-Configure for your hardware:
-
-Bash
-make carlD_defconfig
-Compile:
-
-Bash
+```
+PORT    | DEVICE                  | USAGE
+────────────────────────────────────────────────
+0x40-42 | Programmable Interval   | Timer control
+        | Timer (PIT 8254)        |
+────────────────────────────────────────────────
+0x43    | PIT Control Register    | Mode/divisor
+────────────────────────────────────────────────
+0x60    
